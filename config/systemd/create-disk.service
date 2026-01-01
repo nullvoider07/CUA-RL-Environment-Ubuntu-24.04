@@ -1,0 +1,15 @@
+[Unit]
+Description=Create and Mount CUA Data Disk (Default 8GB)
+After=local-fs.target
+Wants=local-fs.target
+
+[Service]
+Type=oneshot
+Environment=CUA_DISK_SIZE=8G
+ExecStart=/usr/local/bin/create-disk.sh
+RemainAfterExit=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

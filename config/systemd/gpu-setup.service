@@ -1,0 +1,19 @@
+# config/systemd/gpu-setup.service
+[Unit]
+Description=GPU and Virtual Display Setup
+After=local-fs.target
+Wants=local-fs.target
+Before=supervisord.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/gpu-setup.sh
+RemainAfterExit=true
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=60
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
