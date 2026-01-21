@@ -4,13 +4,13 @@ set -euo pipefail
 LOG="/var/log/x_start.log"
 echo "=== CREATE DISK START $(date) ===" >> "$LOG"
 
-# === DEFAULT: 8GB (always created) ===
-SIZE="${CUA_DISK_SIZE:-8G}"
+# === DEFAULT: 64GB (always created) ===
+SIZE="${CUA_DISK_SIZE:-64G}"
 
 DISK_PATH="/var/lib/cua/disk.img"
 MOUNTPOINT="/mnt/data"
 
-# === 1. FORCE FRESH START (The Fix) ===
+# === 1. FORCE FRESH START ===
 if [ -f "$DISK_PATH" ]; then
     echo "Found old disk. Wiping for fresh start..." >> "$LOG"
     rm -f "$DISK_PATH"

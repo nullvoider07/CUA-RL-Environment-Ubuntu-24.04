@@ -1,0 +1,14 @@
+[Unit]
+Description=Eye Agent Automation
+After=network.target graphical-session.target
+
+[Service]
+ExecStart=/usr/local/bin/eye-daemon.sh
+Restart=always
+RestartSec=3
+StandardOutput=journal
+Environment=PYTHONIOENCODING=utf-8
+Environment=LANG=en_US.UTF-8
+
+[Install]
+WantedBy=default.target

@@ -70,24 +70,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnvidia-egl-wayland1 mesa-utils nvidia-settings \
     # Misc
     logrotate openssl network-manager \
+    # Video/Graphics
+    ffmpeg libx11-6 libxext6 libxrender1 libxrandr2 \
+    libxtst6 libxcb1 libxcomposite1 libxdamage1 \
     # Clean up apt cache and lists
     && locale-gen en_US.UTF-8 \
     && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
     && fc-cache -f -v \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /var/tmp/*
 
-# === 2.1. NVIDIA Video Libraries (for NVENC/NVDEC) ===
-RUN apt-get update && \
-    add-apt-repository ppa:graphics-drivers/ppa -y && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
-        libnvidia-encode-580 \
-        libnvidia-decode-580 \
-        libnvidia-fbc1-580 \
-        nvidia-utils-580 && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# === 2.2. NVIDIA Container Toolkit ===
+# === 2.1. NVIDIA Container Toolkit ===
 RUN curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
     && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
        sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
@@ -96,19 +88,8 @@ RUN curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearm
     && apt-get install -y --no-install-recommends nvidia-container-toolkit \
     && rm -rf /var/lib/apt/lists/*
 
-# === 2.3. FFmpeg + Websocat ===
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libxcb-xfixes0-dev libxcb-shape0-dev libxcb1-dev libxfixes-dev libxkbcommon-x11-dev \
-    && add-apt-repository ppa:savoury1/ffmpeg4 -y \
-    && apt-get install -y --no-install-recommends ffmpeg \
-    && wget https://github.com/vi/websocat/releases/download/v1.14.0/websocat.x86_64-unknown-linux-musl -O /usr/local/bin/websocat \
-    && chmod +x /usr/local/bin/websocat \
-    && apt-get purge -y libxcb-xfixes0-dev libxcb-shape0-dev libxcb1-dev libxfixes-dev libxkbcommon-x11-dev \
-    && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
-
 # === 3. Programming Languages Installation and Setup ===
-# === Install Python 3.13.9 + pip 25.3 ===
+# === Install Python 3.14.2 + pip 25.3 ===
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
         libnss3-dev libssl-dev libreadline-dev libffi-dev \
@@ -489,6 +470,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # === VLC Configuration ===
 RUN sed -i 's/geteuid/getppid/' /usr/bin/vlc
 
+# === The Eyes (Eye) - Screen Monitoring Tool ===
+RUN curl -L -o /tmp/eye.tar.gz "https://github.com/nullvoider07/the-eyes/releases/download/v0.1.1/eye-0.1.1-linux-x64.tar.gz" \
+    && tar -xzf /tmp/eye.tar.gz -C /tmp \
+    && mv /tmp/bin/eye /usr/local/bin/eye \
+    && mv /tmp/bin/eye-server /usr/local/bin/eye-server \
+    && chmod +x /usr/local/bin/eye /usr/local/bin/eye-server \
+    && rm -rf /tmp/eye.tar.gz /tmp/bin
+
+# Configure Eye Environment Variables
+RUN echo 'export DISPLAY=:0' >> /etc/profile.d/eye-env.sh \
+    && echo 'export XAUTHORITY=/run/user/$(id -u)/gdm/Xauthority' >> /etc/profile.d/eye-env.sh \
+    && chmod 644 /etc/profile.d/eye-env.sh
+
 # === 10. Configurations/Customizations ===
 # Override logind.conf
 COPY config/logind.conf /etc/systemd/logind.conf
@@ -531,13 +525,23 @@ RUN mkdir -p \
     ln -s /etc/systemd/system/supervisord.service /etc/systemd/system/multi-user.target.wants/ && \
     ln -s /etc/systemd/system/gpu-setup.service /etc/systemd/system/graphical.target.wants/
 
+# Eye Agent Service
+COPY config/systemd/eye-agent.service /usr/lib/systemd/user/eye-agent.service
+COPY scripts/eye-daemon.sh /usr/local/bin/eye-daemon.sh
+RUN chmod +x /usr/local/bin/eye-daemon.sh
+
+# Enable Eye Agent for the user
+RUN mkdir -p /usr/lib/systemd/user/default.target.wants && \
+    ln -sf /usr/lib/systemd/user/eye-agent.service \
+           /usr/lib/systemd/user/default.target.wants/eye-agent.service
+
 # === 12. Final Settings ===
 ENV container=docker \
     SYSTEMD_LOG_LEVEL=info \
     GDK_BACKEND=x11 \
     XDG_SESSION_TYPE=x11
 WORKDIR /workspace
-EXPOSE 4000 7681 2222
+EXPOSE 4000 7681 2222 8080
 STOPSIGNAL SIGRTMIN+3
 VOLUME /run
 RUN chown -R 1001:1001 /home/cua-*
