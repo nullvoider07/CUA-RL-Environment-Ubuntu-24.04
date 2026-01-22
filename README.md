@@ -4,6 +4,8 @@
 **Version:** 0.1  
 **Base Image:** Ubuntu 24.04 LTS  
 **Architecture:** x86_64  
+**Last Updated:** January 2026  
+**Developer:** Kartik (NullVoider)
 
 ---
 
