@@ -65,7 +65,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     adwaita-icon-theme fontconfig locales \
     fonts-ubuntu fonts-noto-core fonts-noto-color-emoji \
     # Automation/Monitoring/Utils/Debug
-    rsync tmux procps iproute2 util-linux \
+    rsync tmux procps iproute2 net-tools util-linux \
     # NVIDIA Drivers (for GPU passthrough)
     libnvidia-egl-wayland1 mesa-utils nvidia-settings \
     # Misc
