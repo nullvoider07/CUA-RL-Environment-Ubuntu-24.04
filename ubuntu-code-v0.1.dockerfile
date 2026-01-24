@@ -471,7 +471,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN sed -i 's/geteuid/getppid/' /usr/bin/vlc
 
 # === The Eyes (Eye) - Screen Monitoring Tool ===
-RUN curl -L -o /tmp/eye.tar.gz "https://github.com/nullvoider07/the-eyes/releases/download/v0.1.1/eye-0.1.1-linux-x64.tar.gz" \
+RUN curl -L -o /tmp/eye.tar.gz "https://github.com/nullvoider07/the-eyes/releases/download/v0.2.0/eye-0.2.0-linux-x64.tar.gz" \
     && tar -xzf /tmp/eye.tar.gz -C /tmp \
     && mv /tmp/bin/eye /usr/local/bin/eye \
     && mv /tmp/bin/eye-server /usr/local/bin/eye-server \
