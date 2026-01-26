@@ -41,18 +41,55 @@ echo "NetworkManager started background init..."
 if command -v nvidia-smi >/dev/null 2>&1; then
     echo "Detecting NVIDIA GPU Bus ID..."
     BUS_ID_HEX=$(nvidia-smi --query-gpu=pci.bus_id --format=csv,noheader | head -n 1)
-    # Convert Hex "0000:01:00.0" -> Decimal "PCI:1:0:0"
+    
+    # Convert Hex toDecimal
     BUS_ID_DEC=$(echo "$BUS_ID_HEX" | awk -F: '{printf "PCI:%d:%d:%d", strtonum("0x"$2), strtonum("0x"$3), strtonum("0x"$4)}')
     echo "Found NVIDIA GPU: $BUS_ID_HEX -> Config: $BUS_ID_DEC"
 
     CONF_FILE="/etc/X11/xorg.conf.d/20-nvidia-isolated.conf"
+    
     if [ -f "$CONF_FILE" ]; then
+        echo "Updating Xorg configuration..."
+        
+        # 1. Remove old BusID if it exists
         sed -i '/BusID/d' "$CONF_FILE"
-        sed -i "/Driver.*\"nvidia\"/a \    BusID \"$BUS_ID_DEC\"" "$CONF_FILE"
-        echo "Injected BusID ($BUS_ID_DEC) into $CONF_FILE"
+        
+        # 2. Inject BusID after VendorName line
+        sed -i "/VendorName.*\"NVIDIA Corporation\"/a\\    BusID          \"$BUS_ID_DEC\"" "$CONF_FILE"
+        
+        # 3. Verify injection succeeded
+        if grep -q "BusID.*$BUS_ID_DEC" "$CONF_FILE"; then
+            echo "✓ BusID ($BUS_ID_DEC) successfully injected"
+        else
+            echo "✗ WARNING: BusID injection failed! Attempting alternative method..."
+            awk -v busid="$BUS_ID_DEC" '
+                /VendorName.*"NVIDIA Corporation"/ {
+                    print
+                    print "    BusID          \"" busid "\""
+                    next
+                }
+                { print }
+            ' "$CONF_FILE" > "$CONF_FILE.tmp" && mv "$CONF_FILE.tmp" "$CONF_FILE"
+            
+            # Verify again
+            if grep -q "BusID.*$BUS_ID_DEC" "$CONF_FILE"; then
+                echo "✓ BusID injection succeeded via awk fallback"
+            else
+                echo "✗ CRITICAL: BusID injection failed completely!"
+                echo "Config file contents:"
+                cat "$CONF_FILE"
+            fi
+        fi
+        
+        # 4. Show the NVIDIA Device section for verification
+        echo "Current NVIDIA Device configuration:"
+        sed -n '/Section "Device"/,/EndSection/p' "$CONF_FILE" | grep -A 20 'Identifier.*"NVIDIA"'
+        
     else
-        echo "WARNING: Xorg config file missing!"
+        echo "✗ ERROR: Xorg config file not found at $CONF_FILE"
     fi
+else
+    echo "⚠ WARNING: nvidia-smi not found, skipping BusID configuration"
 fi
 
 # ==============================================================================

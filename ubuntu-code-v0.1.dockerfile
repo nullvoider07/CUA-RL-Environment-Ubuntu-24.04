@@ -6,7 +6,7 @@ ENV EGL_PLATFORM=x11
 
 # === NVIDIA Settings (early for all layers) ===
 ENV NVIDIA_VISIBLE_DEVICES=all \
-    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+    NVIDIA_DRIVER_CAPABILITIES=all \
     __GLX_VENDOR_LIBRARY_NAME=mesa \
     __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_mesa.json
 
@@ -548,5 +548,16 @@ RUN chown -R 1001:1001 /home/cua-*
 
 HEALTHCHECK --interval=30s --timeout=15s --start-period=120s --retries=5 \
     CMD /bin/bash -c 'pgrep -f gnome-shell && pgrep -f nxserver && pgrep -f ttyd'
+
+# === 13. Final Cleanup & Updates ===
+RUN apt-get remove -y update-notifier update-notifier-common ubuntu-release-upgrader-core || true && \
+    rm -f /var/run/reboot-required* && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get dist-upgrade -y && \
+    apt-get autoremove -y && \
+    apt-get autoclean && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* && \
+    systemctl mask apt-daily.service apt-daily.timer apt-daily-upgrade.service apt-daily-upgrade.timer || true
 
 ENTRYPOINT ["/lib/systemd/systemd"]
