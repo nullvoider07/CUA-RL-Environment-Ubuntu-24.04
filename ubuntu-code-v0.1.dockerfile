@@ -471,12 +471,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN sed -i 's/geteuid/getppid/' /usr/bin/vlc
 
 # === The Eyes (Eye) - Screen Monitoring Tool ===
-RUN curl -L -o /tmp/eye.tar.gz "https://github.com/nullvoider07/the-eyes/releases/download/v0.2.0/eye-0.2.0-linux-x64.tar.gz" \
-    && tar -xzf /tmp/eye.tar.gz -C /tmp \
-    && mv /tmp/bin/eye /usr/local/bin/eye \
-    && mv /tmp/bin/eye-server /usr/local/bin/eye-server \
-    && chmod +x /usr/local/bin/eye /usr/local/bin/eye-server \
-    && rm -rf /tmp/eye.tar.gz /tmp/bin
+RUN LATEST_VERSION=$(curl -s https://api.github.com/repos/nullvoider07/the-eyes/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")') && \
+    VERSION_NUMBER=$(echo $LATEST_VERSION | sed 's/^v//') && \
+    echo "Installing Eye version: ${LATEST_VERSION}" && \
+    curl -L -o /tmp/eye.tar.gz "https://github.com/nullvoider07/the-eyes/releases/download/${LATEST_VERSION}/eye-${VERSION_NUMBER}-linux-x64.tar.gz" && \
+    tar -xzf /tmp/eye.tar.gz -C /tmp && \
+    mv /tmp/bin/eye /usr/local/bin/eye && \
+    mv /tmp/bin/eye-server /usr/local/bin/eye-server && \
+    chmod +x /usr/local/bin/eye /usr/local/bin/eye-server && \
+    rm -rf /tmp/eye.tar.gz /tmp/bin
 
 # Configure Eye Environment Variables
 RUN echo 'export DISPLAY=:0' >> /etc/profile.d/eye-env.sh \
